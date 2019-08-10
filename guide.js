@@ -47,7 +47,7 @@ const db = config.get('mongoURI'); // fetches variable defined in default.json
 
 const connectDB = async () => {
   try {
-    await mongoose.connect(db, { useNewUrlParser: true });
+    await mongoose.connect(db, { useNewUrlParser: true, useCreateIndex: true });
     console.log('MongoDB connected...');
   } catch (err) {
     console.error(err.message);
@@ -97,3 +97,152 @@ Now to define schema of database, create folder: models in root directory,
 then inside it create User.js to create schema for users.
 In User.js, type:
 */
+const mongoose = require('mongoose');
+
+const UserSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true
+  },
+  email: {
+    type: String,
+    required: true,
+    unique: true
+  },
+  password: {
+    type: String,
+    required: true
+  },
+  avatar: {
+    type: String
+  },
+  date: {
+    type: Date,
+    default: Date.now
+  }
+});
+
+module.exports = User = mongoose.model('user', UserSchema);
+
+/*
+Now since we need to create users, so the api route defined in users.js should be a POST request.
+So we have to change users.js in the following way (first delete everything already present in it):
+*/
+const express = require('express');
+const router = express.Router();
+
+//@route POST api/users
+//@desc test route
+//@access Public
+router.post('/', (req, res) => {
+  console.log(req.body); // body of POST request
+  res.send('Users route');
+});
+
+module.exports = router;
+
+/*
+No in server.js, we have to initialise middleware to log request body:
+*/
+// Initialise middleware:
+app.use(express.json({ extended: false }));
+
+/* now you can use postman to send post request to this route
+ and the request body will get displayed in the console of VS code.
+
+ But how do we check if the request body sent by user is in correct format of name, email, password?
+ We will use express-validator for this.
+ in users.js, add:
+*/
+const { check, validationResult } = require('express-validator/check');
+/*
+Now modify router.post method to include validation:
+*/
+router.post(
+  '/',
+  [
+    check('name', 'Name is required.')
+      .not()
+      .isEmpty(),
+    check('email', 'Please use valid email.').isEmail(),
+    check(
+      'password',
+      'Please enter a password with 6 or more characters.'
+    ).isLength({ min: 6 })
+  ],
+  (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+    res.send('Users route');
+  }
+);
+
+/* Now save, and use postman to send post request.
+If request body is NOT in the format:
+{
+	"name": "tarun",
+	"email": "tk1234@gmail.com",
+	"password": "123456" 
+}
+then it will display corresponding errors in response.
+Otherwise, it will display "Users route" as response.
+
+Now, we have to check if user already exists. for this, we have to convert 
+(req, res) => {} to: async (req, res) => {} in users.js.
+then use 'await' in further check functions. So, modify this function to:
+*/
+const User = require('../../models/User');
+const gravatar = require('gravatar');
+const bcrypt = require('bcryptjs');
+// ... ... ...
+async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  const { name, email, password } = req.body;
+
+  try {
+    // see if user exists:
+    let user = await User.findOne({ email });
+    if (user) {
+      return res
+        .status(400)
+        .json({ errors: [{ msg: 'User already exists!' }] });
+    }
+
+    // get user gravatar.
+    // ... ... ...
+
+    res.send('Users route');
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error.');
+  }
+};
+
+/*
+similarly, to get gravatar, hash the password and then save the user to mongodb:
+continue typing inside the try{} block above: 
+*/
+// get user gravatar:
+const avatar = gravatar.url(email, {
+  s: '200',
+  r: 'pg',
+  d: 'mm'
+});
+user = new User({
+  name,
+  email,
+  avatar,
+  password
+});
+
+const salt = await bcrypt.genSalt(10);
+user.password = await bcrypt.hash(password, salt);
+await user.save();
+
+res.send('Users registered.');
