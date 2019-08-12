@@ -1,3 +1,4 @@
 {
-  "mongoURI": "mongodb+srv://tarunkhare54321:tarunkhare54321@devconnector-9lwla.mongodb.net/test?retryWrites=true&w=majority"
+  "mongoURI": "mongodb+srv://tarunkhare54321:tarunkhare54321@devconnector-9lwla.mongodb.net/test?retryWrites=true&w=majority",
+  "jwtSecret": "mysecrettoken"
 }

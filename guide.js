@@ -246,3 +246,266 @@ user.password = await bcrypt.hash(password, salt);
 await user.save();
 
 res.send('Users registered.');
+
+/*
+Now after successful registration, we want to return an auth token as response.
+For this we use jwt library. So in users.js, after the line: await user.save(),
+*/
+const jwt = require('jsonwebtoken');
+const config = require('config');
+
+// await user.save();
+const payload = {
+  user: {
+    id: user.id // in mongodb, every data has an id automatically alloted.
+    // we will use this id as input to token generator.
+    // the generated token can be converted back to the payload.
+  }
+};
+jwt.sign(
+  payload,
+  config.get('jwtSecret'), // jwtSecret phrase is stored in config.js
+  { expiresIn: 3600000 }, // token expiry time.
+  (err, token) => {
+    if (err) throw err;
+    res.json({ token }); // return token as json response to user.
+  }
+);
+
+/*
+Now lets create a middleware which will verify the authenticity of token.
+Create folder middleware inside root, then inside middleware, create auth.js:
+*/
+const jwt = require('jsonwebtoken');
+const config = require('config');
+
+module.exports = function(req, res, next) {
+  const token = req.header('x-auth-token');
+
+  if (!token) {
+    return res.status(401).json({ msg: 'No token, authorization denied!' });
+  }
+  // verify token:
+  try {
+    const decoded = jwt.verify(token, config.get('jwtSecret'));
+    req.user = decoded.user;
+    next();
+  } catch (err) {
+    res.status(401).json({ msg: 'token not valid!' });
+  }
+};
+
+/*
+Now change routes\api\auth.js to implement middleware checking of token: 
+*/
+const express = require('express');
+const router = express.Router();
+const auth = require('../../middleware/auth');
+
+//@route GET api/auth
+//@desc test route
+//@access Public
+router.get('/', auth, (req, res) => res.send('Auth route')); // pass middleware as 2nd parameter.
+
+module.exports = router;
+
+/* 
+now in GET auth route, we want to make a functionality that is person sends GET request
+with token in the header, then the corresponding user details should come up,
+This will help us check if a token corresponds to a valid user or not.
+so in we will modify this GET api/auth code: 
+*/
+//@route GET api/auth
+//@desc get user details corresponding to the token.
+//@access Public
+router.get('/', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('-password'); //return every detail except password.
+    res.json(user);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error!');
+  }
+});
+
+/*
+Now to make login, functionality, we need to check if the credentials entered exist or not.
+We do this by creating the POST api/auth route. So under GET api/auth, we define:
+*/
+//@route POST api/auth
+//@desc authenticate user, get token
+//@access Public
+router.post(
+  '/',
+  [
+    check('email', 'Please use valid email.').isEmail(),
+    check(
+      'password',
+      'Please enter a password with 6 or more characters.'
+    ).exists()
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { email, password } = req.body;
+
+    try {
+      // see if user exists:
+      let user = await User.findOne({ email });
+      if (!user) {
+        return res
+          .status(400)
+          .json({ errors: [{ msg: 'invalid credentials.' }] });
+      }
+
+      const isMatch = await bcrypt.compare(password, user.password);
+
+      if (!isMatch) {
+        return res
+          .status(400)
+          .json({ errors: [{ msg: 'invalid credentials.' }] });
+      }
+
+      const payload = {
+        user: {
+          id: user.id
+        }
+      };
+      jwt.sign(
+        payload,
+        config.get('jwtSecret'),
+        { expiresIn: 3600000 },
+        (err, token) => {
+          if (err) throw err;
+          res.json({ token });
+        }
+      );
+    } catch (err) {
+      console.error(err.message);
+      res.status(500).send('Server error.');
+    }
+  }
+);
+
+/*
+Now define Profile schema in models folder in file Profile.js:
+*/
+const mongoose = require('mongoose');
+
+const ProfileSchema = new mongoose.Schema({
+    user: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'user'
+    },
+    company: {
+        type: String
+    },
+    website: {
+        type: String
+    },
+    location: {
+        type: String
+    },
+    status: {
+        type: String,
+        required: true
+    },
+    skills: {
+        type: [String],
+        required: true
+    },
+    bio: {
+        type: String
+    },
+    githubusername: {
+        type: String
+    },
+
+    experience: [
+        {
+            title: {
+                type: String,
+                required: true
+              },
+              company: {
+                type: String,
+                required: true
+              },
+              location: {
+                type: String
+              },
+              from: {
+                type: Date,
+                required: true
+              },
+              to: {
+                type: Date
+              },
+              current: {
+                type: Boolean,
+                default: false
+              },
+              description: {
+                type: String
+              }
+        }
+    ],
+
+    education: [
+        {
+          school: {
+            type: String,
+            required: true
+          },
+          degree: {
+            type: String,
+            required: true
+          },
+          fieldofstudy: {
+            type: String,
+            required: true
+          },
+          from: {
+            type: Date,
+            required: true
+          },
+          to: {
+            type: Date
+          },
+          current: {
+            type: Boolean,
+            default: false
+          },
+          description: {
+            type: String
+          }
+        }
+      ],
+
+      social: {
+        youtube: {
+          type: String
+        },
+        twitter: {
+          type: String
+        },
+        facebook: {
+          type: String
+        },
+        linkedin: {
+          type: String
+        },
+        instagram: {
+          type: String
+        }
+      },
+      date: {
+        type: Date,
+        default: Date.now
+      }
+});
+
+module.exports = Profile = mongoose.model('profile', ProfileSchema);
