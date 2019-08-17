@@ -31,6 +31,11 @@ also to add to git, type:
 git add .
 git commit -m "initial commit"
 
+to add code to github repo:
+create an empty github repository.
+use command: git remote add <repo_name> <repo_url>
+then: git push <repo_name> master
+
 now copy connection string from mongodb atlas. create new folder: config, add new file in it: default.json.
 add to this file: 
 {
@@ -396,116 +401,116 @@ Now define Profile schema in models folder in file Profile.js:
 const mongoose = require('mongoose');
 
 const ProfileSchema = new mongoose.Schema({
-    user: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'user'
-    },
-    company: {
-        type: String
-    },
-    website: {
-        type: String
-    },
-    location: {
-        type: String
-    },
-    status: {
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'user'
+  },
+  company: {
+    type: String
+  },
+  website: {
+    type: String
+  },
+  location: {
+    type: String
+  },
+  status: {
+    type: String,
+    required: true
+  },
+  skills: {
+    type: [String],
+    required: true
+  },
+  bio: {
+    type: String
+  },
+  githubusername: {
+    type: String
+  },
+
+  experience: [
+    {
+      title: {
         type: String,
         required: true
-    },
-    skills: {
-        type: [String],
-        required: true
-    },
-    bio: {
-        type: String
-    },
-    githubusername: {
-        type: String
-    },
-
-    experience: [
-        {
-            title: {
-                type: String,
-                required: true
-              },
-              company: {
-                type: String,
-                required: true
-              },
-              location: {
-                type: String
-              },
-              from: {
-                type: Date,
-                required: true
-              },
-              to: {
-                type: Date
-              },
-              current: {
-                type: Boolean,
-                default: false
-              },
-              description: {
-                type: String
-              }
-        }
-    ],
-
-    education: [
-        {
-          school: {
-            type: String,
-            required: true
-          },
-          degree: {
-            type: String,
-            required: true
-          },
-          fieldofstudy: {
-            type: String,
-            required: true
-          },
-          from: {
-            type: Date,
-            required: true
-          },
-          to: {
-            type: Date
-          },
-          current: {
-            type: Boolean,
-            default: false
-          },
-          description: {
-            type: String
-          }
-        }
-      ],
-
-      social: {
-        youtube: {
-          type: String
-        },
-        twitter: {
-          type: String
-        },
-        facebook: {
-          type: String
-        },
-        linkedin: {
-          type: String
-        },
-        instagram: {
-          type: String
-        }
       },
-      date: {
+      company: {
+        type: String,
+        required: true
+      },
+      location: {
+        type: String
+      },
+      from: {
         type: Date,
-        default: Date.now
+        required: true
+      },
+      to: {
+        type: Date
+      },
+      current: {
+        type: Boolean,
+        default: false
+      },
+      description: {
+        type: String
       }
+    }
+  ],
+
+  education: [
+    {
+      school: {
+        type: String,
+        required: true
+      },
+      degree: {
+        type: String,
+        required: true
+      },
+      fieldofstudy: {
+        type: String,
+        required: true
+      },
+      from: {
+        type: Date,
+        required: true
+      },
+      to: {
+        type: Date
+      },
+      current: {
+        type: Boolean,
+        default: false
+      },
+      description: {
+        type: String
+      }
+    }
+  ],
+
+  social: {
+    youtube: {
+      type: String
+    },
+    twitter: {
+      type: String
+    },
+    facebook: {
+      type: String
+    },
+    linkedin: {
+      type: String
+    },
+    instagram: {
+      type: String
+    }
+  },
+  date: {
+    type: Date,
+    default: Date.now
+  }
 });
 
 module.exports = Profile = mongoose.model('profile', ProfileSchema);
@@ -516,6 +521,7 @@ then create an api route to view current users profile in routes/api/profile.js:
 const express = require('express');
 const router = express.Router();
 const auth = require('../../middleware/auth');
+const { check, validationResult } = require('express-validator/check');
 const Profile = require('../../models/Profile');
 const User = require('../../models/User');
 //@route GET api/profile/me
@@ -540,3 +546,134 @@ router.get('/me', auth, async (req, res) => {
 });
 
 module.exports = router;
+
+/*
+Now to create or update profile of a user (identified by token), we write POST api/profile route. 
+*/
+//@route POST api/profile/
+//@desc create or update profile
+//@access Private
+router.post(
+  '/',
+  [
+    auth, // token authentication using middleware.
+    [
+      check('status', 'Status cannot be empty.') // current status (eg. student, employee) cant be empty.
+        .not()
+        .isEmpty(),
+      check('skills', 'Skills are required.') // listing skills is mandatory.
+        .not()
+        .isEmpty()
+    ]
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const {
+      company,
+      website,
+      location,
+      bio,
+      status,
+      githubusername,
+      skills,
+      youtube,
+      facebook,
+      twitter,
+      instagram,
+      linkedin
+    } = req.body;
+
+    const profileFields = {};
+    profileFields.user = req.user.id;
+    if (company) profileFields.company = company;
+    if (website) profileFields.website = website;
+    if (location) profileFields.location = location;
+    if (bio) profileFields.bio = bio;
+    if (status) profileFields.status = status;
+    if (githubusername) profileFields.githubusername = githubusername;
+    if (skills) {
+      profileFields.skills = skills.split(',').map(s => s.trim());
+    }
+
+    profileFields.social = {};
+    if (youtube) profileFields.social.youtube = youtube;
+    if (twitter) profileFields.social.twitter = twitter;
+    if (facebook) profileFields.social.facebook = facebook;
+    if (instagram) profileFields.social.instagram = instagram;
+    if (linkedin) profileFields.social.linkedin = linkedin;
+
+    try {
+      // Using upsert option (creates new doc if no match is found):
+      let profile = await Profile.findOneAndUpdate(
+        { user: req.user.id },
+        { $set: profileFields },
+        { new: true, upsert: true }
+      );
+      res.json(profile);
+    } catch (err) {
+      console.error(err.message);
+      res.status(500).send('Server down.');
+    }
+  }
+);
+
+/*
+Now let us make routes to get all profiles, and get profile by user id.
+*/
+//@route GET api/profile/
+//@desc get all profiles
+//@access Public
+router.get('/', async (req, res) => {
+  try {
+    const profiles = await Profile.find().populate('user', ['name', 'avatar']);
+    res.json(profiles);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server down.');
+  }
+});
+
+//@route GET api/profile/user/:user_id
+//@desc get profile by user id.
+//@access Public
+router.get('/user/:user_id', async (req, res) => {
+  try {
+    const profile = await Profile.findOne({
+      user: req.params.user_id
+    }).populate('user', ['name', 'avatar']);
+    if (!profile) return res.status(400).json({ msg: 'Profile not found.' });
+    res.json(profile);
+  } catch (err) {
+    console.error(err.message);
+    if (err.kind == 'ObjectId') {
+      return res.status(400).json({ msg: 'Profile not found.' });
+    }
+    res.status(500).send('Server down.');
+  }
+});
+
+/*
+Now let us create route to delete user, profi;e, and posts by token.
+*/
+//@route DELETE api/profile/
+//@desc delete profile, user, posts by token.
+//@access Private
+router.delete('/', auth, async (req, res) => {
+  try {
+    // @todo remove posts.
+
+    // remove profile
+    await Profile.findOneAndRemove({ user: req.user.id });
+    // remove user
+    await User.findOneAndRemove({ _id: req.user.id }); // because in User model, id is stored in key _id.
+
+    res.json({ msg: 'User deleted' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server down.');
+  }
+});
