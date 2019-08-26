@@ -137,4 +137,87 @@ router.put('/unlike/:id', auth, async (req, res) => {
   }
 });
 
+//@route POST api/posts/comment/:id
+//@desc Comment on a post
+//@access Private
+router.post(
+  '/comment/:id',
+  [
+    auth,
+    [
+      check('text', 'Text is required.')
+        .not()
+        .isEmpty()
+    ]
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      console.log(errors);
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    try {
+      const user = await User.findById(req.user.id).select('-password');
+      const post = await Post.findById(req.params.id);
+      const newComment = {
+        text: req.body.text,
+        name: user.name,
+        avatar: user.avatar,
+        user: req.user.id
+      };
+
+      post.comments.unshift(newComment);
+      await post.save();
+      res.json(post.comments);
+    } catch (err) {
+      console.error(err.message);
+      res.status(500).send('Server down.');
+    }
+  }
+);
+
+//@route DELETE api/posts/comment/:id/:commentId
+//@desc delete a comment from a post.
+//@access Private
+router.delete('/comment/:id/:commentId', auth, async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+
+    if (!post) {
+      return res.status(404).json({ msg: 'Post not found.' });
+    }
+
+    //pull out comment.
+    var i;
+    var commentIndex = -1;
+    for (i = 0; i < post.comments.length; i++) {
+      if (post.comments[i].id == req.params.commentId) {
+        commentIndex = i;
+        break;
+      }
+    }
+    if (commentIndex == -1) {
+      return res.status(404).json({ msg: 'Comment not found.' });
+    }
+    // check that user can't delete others commentss:
+    if (post.comments[commentIndex].user.toString() != req.user.id) {
+      return res
+        .status(401)
+        .json({ msg: 'User not authorized to delete this comment.' });
+    }
+
+    post.comments.splice(commentIndex, 1);
+    await post.save();
+
+    res.json({ msg: 'comment removed.' });
+  } catch (err) {
+    console.error(err.message);
+    if (err.kind === 'ObjectId') {
+      return res.status(404).json({ msg: 'Post not found.' });
+    }
+    res.status(500).send('Server down.');
+  }
+});
+
 module.exports = router;
