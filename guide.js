@@ -1,4 +1,5 @@
-/* create new folder devconnector.
+/* edited on gitpod
+create new folder devconnector.
 create .gitignore and add line: node_modules/
 do git init at folder location.
 do npm init at folder location.
@@ -27,7 +28,7 @@ Now in package.json, remove "test" key from "scripts" and instead add:
 
 Now save all, type command: npm run server, then open localhost:5000
 
-also to add to git, type: 
+also to add to git, type:
 git add .
 git commit -m "initial commit"
 
@@ -37,7 +38,7 @@ use command: git remote add <repo_name> <repo_url>
 then: git push <repo_name> master
 
 now copy connection string from mongodb atlas. create new folder: config, add new file in it: default.json.
-add to this file: 
+add to this file:
 {
     "mongoURI": "your connection string"
 }
@@ -189,12 +190,12 @@ If request body is NOT in the format:
 {
 	"name": "tarun",
 	"email": "tk1234@gmail.com",
-	"password": "123456" 
+	"password": "123456"
 }
 then it will display corresponding errors in response.
 Otherwise, it will display "Users route" as response.
 
-Now, we have to check if user already exists. for this, we have to convert 
+Now, we have to check if user already exists. for this, we have to convert
 (req, res) => {} to: async (req, res) => {} in users.js.
 then use 'await' in further check functions. So, modify this function to:
 */
@@ -231,7 +232,7 @@ async (req, res) => {
 
 /*
 similarly, to get gravatar, hash the password and then save the user to mongodb:
-continue typing inside the try{} block above: 
+continue typing inside the try{} block above:
 */
 // get user gravatar:
 const avatar = gravatar.url(email, {
@@ -301,7 +302,7 @@ module.exports = function(req, res, next) {
 };
 
 /*
-Now change routes\api\auth.js to implement middleware checking of token: 
+Now change routes\api\auth.js to implement middleware checking of token:
 */
 const express = require('express');
 const router = express.Router();
@@ -314,11 +315,11 @@ router.get('/', auth, (req, res) => res.send('Auth route')); // pass middleware 
 
 module.exports = router;
 
-/* 
+/*
 now in GET auth route, we want to make a functionality that is person sends GET request
 with token in the header, then the corresponding user details should come up,
 This will help us check if a token corresponds to a valid user or not.
-so in we will modify this GET api/auth code: 
+so in we will modify this GET api/auth code:
 */
 //@route GET api/auth
 //@desc get user details corresponding to the token.
@@ -548,7 +549,7 @@ router.get('/me', auth, async (req, res) => {
 module.exports = router;
 
 /*
-Now to create or update profile of a user (identified by token), we write POST api/profile route. 
+Now to create or update profile of a user (identified by token), we write POST api/profile route.
 */
 //@route POST api/profile/
 //@desc create or update profile
@@ -761,7 +762,7 @@ router.delete('/experience/:exp_id', auth, async (req, res) => {
 });
 
 /*
-Similarly, add routes to add and delete education, and fetch github repos by username. 
+Similarly, add routes to add and delete education, and fetch github repos by username.
 */
 //@route PUT api/profile/education
 //@desc add profile education
@@ -1161,7 +1162,7 @@ module.exports = router;
 /*
 Now initialize react boilerplate inside devconnector/client folder using command.
 npx create-react-app client
-Now we can run react server by doing: cd client ; and then npm start 
+Now we can run react server by doing: cd client ; and then npm start
 But we want to run both react server and node server concurrently using same command.
 so in package.json, under server: "nodemon", add:
 
@@ -1170,7 +1171,7 @@ so in package.json, under server: "nodemon", add:
 
 Now in devconnector directory, type: npm run dev
 
-Then install  few packages in client directory using command: 
+Then install  few packages in client directory using command:
 
 npm i axios react-router-dom redux react-redux redux-thunk redux-devtools-extension moment react-moment
 
