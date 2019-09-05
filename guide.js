@@ -1,4 +1,5 @@
 /* edited on gitpod
+edited on vs code
 create new folder devconnector.
 create .gitignore and add line: node_modules/
 do git init at folder location.
