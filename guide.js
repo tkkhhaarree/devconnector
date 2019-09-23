@@ -13,6 +13,7 @@ type code:
 */
 const express = require('express');
 const app = express();
+console.log("hello");
 
 // api endpoint
 app.get('/', (req, res) => res.send('API running'));
@@ -20,6 +21,7 @@ app.get('/', (req, res) => res.send('API running'));
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
+
 
 /*
 Now in package.json, remove "test" key from "scripts" and instead add:
