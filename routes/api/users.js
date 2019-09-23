@@ -7,6 +7,9 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const config = require('config');
 
+var cors = require('cors');
+router.use(cors());
+
 //@route POST api/users
 //@desc test route
 //@access Public

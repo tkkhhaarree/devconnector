@@ -6,6 +6,8 @@ const config = require('config');
 const { check, validationResult } = require('express-validator/check');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+var cors = require('cors');
+router.use(cors());
 
 //@route GET api/auth
 //@desc get user info from token
