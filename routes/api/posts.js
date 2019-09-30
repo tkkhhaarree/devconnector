@@ -9,6 +9,9 @@ const User = require('../../models/User');
 
 const auth = require('../../middleware/auth');
 
+var cors = require('cors');
+router.use(cors());
+
 //@route POST api/posts
 //@desc Create post
 //@access Private

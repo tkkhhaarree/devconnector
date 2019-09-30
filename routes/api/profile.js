@@ -6,6 +6,8 @@ const auth = require('../../middleware/auth');
 const { check, validationResult } = require('express-validator/check');
 const Profile = require('../../models/Profile');
 const User = require('../../models/User');
+var cors = require('cors');
+router.use(cors());
 
 //@route GET api/profile/me
 //@desc get current users profile
